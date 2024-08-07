@@ -1,0 +1,22 @@
+﻿{
+  "name": "com.report.trello",
+  "displayName": "Trello Report",
+  "description": "Report to Trello Card from Unity",
+  "version": "0.1.0",
+  "unity": "2021.2",
+  "category": "core",
+  "author": {
+    "name": "Airport__Simulator"
+  },
+  "license": "MIT",
+  "keywords": [
+    "unity","trello"
+  ],
+  "dependencies": {
+    
+  },
+  "repository": {
+  },
+  "publishConfig": {
+  }
+}

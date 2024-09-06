@@ -11,6 +11,12 @@ namespace Trello_Report.Runtime
         public string url="https://api.trello.com/1/cards";
         public string apiKey;
         public string token;
+        
+        public void Initialize(string apiKey, string token)
+        {
+            this.apiKey = apiKey;
+            this.token = token;
+        }
 
         public IEnumerator CreateTrelloCard(string cardTitle, string description, string listId,
             Action<bool, string> callback)

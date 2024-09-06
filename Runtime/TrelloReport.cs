@@ -5,10 +5,10 @@ using UnityEngine.UI;
 
 namespace Trello_Report.Runtime
 {
-    public class TrelloReport : MonoBehaviour
+    public class TrelloReportView : MonoBehaviour
     {
         [Header("UI Elements")] [SerializeField]
-        private GameObject formUI;
+        private CanvasGroup canvasGroup;
 
         [SerializeField] private TMP_InputField titleInput;
         [SerializeField] private TextMeshProUGUI placeholderTitle;
@@ -20,6 +20,7 @@ namespace Trello_Report.Runtime
         [SerializeField] private Button feedbackButton;
         [SerializeField] private Button sendButton;
         [SerializeField] private Button cancelButton;
+
 
         [Header("Placeholder Texts")] [TextArea(3, 6)] [SerializeField]
         private string bugPlaceholderText;
@@ -33,16 +34,20 @@ namespace Trello_Report.Runtime
 
         [Header("Screenshot Settings")] [SerializeField]
         private Toggle screenshotToggle;
-        
+
         [SerializeField] private string bugsListId;
         [SerializeField] private string feedbackListId;
-
-        private string selectedListId;
         [SerializeField] private TrelloCardReporter trelloReporter;
 
-        void Start()
+        private string _selectedListId;
+        private Action _onCloseCallback;
+
+        public void Setup(CanvasGroup canvasGroupToToggle, string apiKey, string token, Action onCloseCallback)
         {
+            trelloReporter.Initialize(apiKey, token);
+            canvasGroup = canvasGroupToToggle;
             SetupUI();
+            _onCloseCallback = onCloseCallback;
         }
 
         private void SetupUI()
@@ -52,20 +57,14 @@ namespace Trello_Report.Runtime
             bugButton.onClick.AddListener(SelectBug);
             feedbackButton.onClick.AddListener(SelectFeedback);
             descriptionInput.onValueChanged.AddListener(UpdateCharCount);
-            formUI.SetActive(false);
             errorText.text = "";
             descriptionCharCount.text = "0/500";
             SelectBug();
         }
-
-        public void ShowForm()
-        {
-            formUI.SetActive(true);
-        }
-
+        
         public void SelectBug()
         {
-            selectedListId = bugsListId;
+            _selectedListId = bugsListId;
             placeholderTitle.text = "Bug title...";
             placeholderDescription.text = bugPlaceholderText;
             UpdateButtonColors(bugButton, feedbackButton);
@@ -73,7 +72,7 @@ namespace Trello_Report.Runtime
 
         public void SelectFeedback()
         {
-            selectedListId = feedbackListId;
+            _selectedListId = feedbackListId;
             placeholderTitle.text = "Feedback title...";
             placeholderDescription.text = feedbackPlaceholderText;
             UpdateButtonColors(feedbackButton, bugButton);
@@ -100,7 +99,7 @@ namespace Trello_Report.Runtime
                 $"\n\n### Extra Info\nApplication Version: {Application.version}\nDate and Time: {DateTime.Now}";
             description = "### Details\n" + description + additionalInfo;
 
-            StartCoroutine(trelloReporter.CreateTrelloCard(cardTitle, description, selectedListId, OnCardCreated));
+            StartCoroutine(trelloReporter.CreateTrelloCard(cardTitle, description, _selectedListId, OnCardCreated));
         }
 
         private void OnCardCreated(bool success, string cardId)
@@ -124,14 +123,14 @@ namespace Trello_Report.Runtime
 
         private System.Collections.IEnumerator CaptureAndUploadScreenshot(string cardId)
         {
-            formUI.SetActive(false);
+            canvasGroup.alpha = 0;
             yield return new WaitForEndOfFrame();
 
             Texture2D screenImage = ScreenCapture.CaptureScreenshotAsTexture();
             byte[] imageBytes = screenImage.EncodeToPNG();
             Destroy(screenImage);
 
-            formUI.SetActive(true);
+            canvasGroup.alpha = 1;
 
             StartCoroutine(trelloReporter.UploadScreenshot(cardId, imageBytes, OnScreenshotUploaded));
         }
@@ -151,6 +150,7 @@ namespace Trello_Report.Runtime
         public void OnCancel()
         {
             ResetForm("");
+            _onCloseCallback?.Invoke();
         }
 
         private void ResetForm(string message)
@@ -158,7 +158,6 @@ namespace Trello_Report.Runtime
             titleInput.text = "";
             descriptionInput.text = "";
             errorText.text = message;
-            formUI.SetActive(false);
         }
 
         private void UpdateCharCount(string text)
